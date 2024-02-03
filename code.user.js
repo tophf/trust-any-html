@@ -20,7 +20,7 @@
         const d = Object.getOwnPropertyDescriptor(proto, 'innerHTML');
         const { set } = d;
         d.set = function (val) {
-          set.call(this, createHTML(val));
+          set.call(this, createHTML.call(p, val));
         };
         Object.defineProperty(proto, 'innerHTML', d);
         proto.insertAdjacentHTML = function (pos, html) {
