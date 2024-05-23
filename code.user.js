@@ -1,36 +1,47 @@
 // ==UserScript==
 // @name        Circumvent trustedTypes for HTML
 // @namespace   Violentmonkey Scripts
+// @unwrap
 // @grant       none
 // @run-at      document-start
+// @version     2.0.0
 // ==/UserScript==
 {
-  const CP = 'createPolicy';
-  const createPolicy = trustedTypes[CP];
-  let createHTML;
-  trustedTypes[CP] = function ovr(name, opts) {
-    const p = createPolicy.call(trustedTypes, name, opts);
-    if (!createHTML && (createHTML = p.createHTML)) {
-      const el = document.documentElement.appendChild(document.createElement('div'));
+  let policy, createHTML;
+  const {Proxy} = window, {apply}  = Reflect, {bind} = Proxy;
+  const P = 'prototype', CP = 'createPolicy', TTPF = TrustedTypePolicyFactory[P];
+  const {getOwnPropertyDescriptor: describe, defineProperty: define} = Object;
+  const proxify = (obj, key, i, hook) => (obj[key] = new Proxy(obj[key], {
+    __proto__: null,
+    apply: hook || ((fn, self, args) => (
+      args[i] = apply(createHTML, policy, [args[i]]),
+      apply(fn, self, args)
+    ))
+  }));
+  const proxifySetter = (obj, key) => {
+    const desc = describe(obj, key);
+    proxify(desc, 'set', 0);
+    define(obj, key, desc);
+  };
+  const origCP = TTPF[CP];
+  const ovrCP = proxify(TTPF, CP, 0, (fn, thisArg, args) => {
+    const pol = apply(fn, thisArg, args);
+    if (!createHTML && (createHTML = pol.createHTML)) {
+      const el = document.createElement('div');
       try {
-        el.innerHTML = createHTML.call(p, '');
-        if (trustedTypes[CP] === ovr) delete trustedTypes[CP];
-        const proto = Element.prototype;
-        const { insertAdjacentHTML } = proto;
-        const d = Object.getOwnPropertyDescriptor(proto, 'innerHTML');
-        const { set } = d;
-        d.set = function (val) {
-          set.call(this, createHTML.call(p, val));
-        };
-        Object.defineProperty(proto, 'innerHTML', d);
-        proto.insertAdjacentHTML = function (pos, html) {
-          return insertAdjacentHTML.call(this, pos, createHTML.call(p, html));
-        };
+        el.innerHTML = apply(createHTML, pol, ['']);
+        policy = pol;
+        if (TTPF[CP] === ovrCP)
+          TTPF[CP] = origCP;
+        const ElemP = Element[P];
+        proxifySetter(ElemP, 'innerHTML');
+        proxifySetter(ElemP, 'outerHTML');
+        proxify(ElemP, 'insertAdjacentHTML'/* (pos, html) */, 1);
+        proxify(DOMParser[P], 'parseFromString'/* (html, type) */, 0);
       } catch (err) {
         createHTML = null;
       }
-      el.remove();
     }
-    return p;
-  };
+    return pol;
+  });
 }
