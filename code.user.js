@@ -8,7 +8,7 @@
 // ==/UserScript==
 {
   let policy, createHTML;
-  const {Proxy} = window, {apply}  = Reflect, {bind} = Proxy;
+  const {Proxy} = window, {apply}  = Reflect;
   const P = 'prototype', CP = 'createPolicy', TTPF = TrustedTypePolicyFactory[P];
   const {getOwnPropertyDescriptor: describe, defineProperty: define} = Object;
   const proxify = (obj, key, i, hook) => (obj[key] = new Proxy(obj[key], {
