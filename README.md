@@ -1,4 +1,4 @@
-Reuses the site's trustedHTML.createHTML policy for innerHTML assignments and insertAdjacentHTML.
+Reuses the site's `trustedHTML.createHTML` policy for `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `parseFromString`.
 
 Installation:
 1. https://github.com/tophf/trust-any-html/raw/main/code.user.js
